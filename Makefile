@@ -6,3 +6,9 @@ test:
 
 lint:
 	./vendor/bin/phpcs --standard=PSR12 app
+
+
+install:
+	composer install
+	cp -n .env.example .env|| true
+	php artisan key:gen --ansi
