@@ -12,3 +12,6 @@ install:
 	composer install
 	cp -n .env.example .env|| true
 	php artisan key:gen --ansi
+
+deploy:
+	git push heroku main
