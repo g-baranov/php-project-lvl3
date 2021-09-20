@@ -3,7 +3,8 @@ start:
 
 test:
 	php artisan test
-
+test-coverage:
+	./vendor/bin/phpunit -c phpunit.xml --coverage-clover build/logs/clover.xml
 lint:
 	./vendor/bin/phpcs --standard=PSR12 app
 
