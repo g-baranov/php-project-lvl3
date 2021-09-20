@@ -65,14 +65,14 @@ class UrlController extends Controller
             return Redirect::route('main')->withInput();
         }
 
-        DB::table('urls')->insert([
+        $createdId = DB::table('urls')->insertGetId([
             'name' => $host,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
 
         flash("Created successfully")->success();
-        return Redirect::route('main')->withInput();
+        return Redirect::route('urls.show', ['url' => $createdId])->withInput();
     }
 
     /**
