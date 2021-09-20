@@ -21,9 +21,9 @@ class UrlController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return View
+     * @return Response
      */
-    public function index(): View
+    public function index(): Response
     {
         $urls = DB::table('urls')->paginate(50);
         $lastUrlChecks = DB::table('url_checks')
@@ -32,19 +32,20 @@ class UrlController extends Controller
             ->keyBy('url_id')
         ; //prevent n+1
 
-        return view('url.index', ['urls' => $urls, 'lastUrlChecks' => $lastUrlChecks]);
+        return response()->view('url.index', ['urls' => $urls, 'lastUrlChecks' => $lastUrlChecks]);
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param Request $request
+     * @return Response
      */
     public function store(Request $request): Response
     {
-        $validation = Validator::make($request->all(), [
-            'url.name' => 'required|max:255|url',
+        $urlData = $request->get('url');
+        $validation = Validator::make($urlData, [
+            'name' => 'required|max:255|url',
         ]);
         if ($validation->fails()) {
             flash("Invalid url")->error();
@@ -53,13 +54,13 @@ class UrlController extends Controller
                 ->withInput();
         }
 
-        $urlRaw = $request->get('url')['name'];
+        $urlRaw = $urlData['name'];
         $urlParts = parse_url($urlRaw);
         $host = mb_strtolower("{$urlParts['scheme']}://{$urlParts['host']}");
 
         $url = DB::table('urls')->where('name', $host)->first();
 
-        if ($url) {
+        if (!is_null($url)) {
             flash("The url already exists id#{$url->id}")->error();
             return Redirect::route('main')->withInput();
         }
@@ -78,12 +79,12 @@ class UrlController extends Controller
      * Display the specified resource.
      *
      * @param int $id
-     * @return Application|Factory|View|Response
+     * @return Response
      */
-    public function show(int $id)
+    public function show(int $id): Response
     {
         $url = DB::table('urls')->where('id', $id)->first();
-        if (!$url) {
+        if (is_null($url)) {
             flash("Url id#{$id} was not found")->error();
             return Redirect::route('main')->withInput();
         }
@@ -92,7 +93,8 @@ class UrlController extends Controller
             ->where('url_id', $url->id)
             ->orderByDesc('id')
             ->paginate(50);
-        return view('url.show', ['url' => $url, 'urlChecks' => $urlChecks]);
+
+        return response()->view('url.show', ['url' => $url, 'urlChecks' => $urlChecks]);
     }
 
 
@@ -103,7 +105,7 @@ class UrlController extends Controller
     public function check(int $id): Response
     {
         $url = DB::table('urls')->find($id);
-        if (!$url) {
+        if (is_null($url)) {
             flash("Url id#{$id} was not found")->error();
             return Redirect::route('main')->withInput();
         }

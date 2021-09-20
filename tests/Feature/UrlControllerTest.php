@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -17,7 +18,7 @@ class UrlControllerTest extends AbstractFeatureTestCase
     public function testIndex(): void
     {
         $response = $this->get(route('urls.index'));
-        self::assertEquals(200, $response->getStatusCode());
+        $response->assertOk();
     }
 
     public function testStore(): void
@@ -31,17 +32,24 @@ class UrlControllerTest extends AbstractFeatureTestCase
 
     public function testCheck(): void
     {
+        /** @var object|null $url */
         $url = DB::table('urls')->where(['name' => "http://example.com"])->first();
+        static::assertNotNull($url);
+        $urlId = $url->id;
 
         $filePath = __DIR__ . '/../fixtures/fake.html';
-        self::assertFileExists($filePath);
-        Http::fake(fn() => Http::response(file_get_contents($filePath), 200));
+        $fileContent = file_get_contents($filePath);
+        if ($fileContent === false) {
+            throw new Exception('File not found');
+        }
 
-        $response = $this->post(route('urls.check', ['url' => $url->id]));
+        Http::fake(fn() => Http::response($fileContent, 200));
+
+        $response = $this->post(route('urls.check', ['url' => $urlId]));
         $response->assertSessionHasNoErrors();
 
         $result = [
-            'url_id'      => $url->id,
+            'url_id'      => $urlId,
             'status_code' => 200,
             'h1'          => 'First h1',
             'keywords'    => 'meta keywords content',
@@ -52,8 +60,12 @@ class UrlControllerTest extends AbstractFeatureTestCase
 
     public function testShow(): void
     {
+        /** @var object|null $url */
         $url = DB::table('urls')->where(['name' => "http://example.com"])->first();
-        $response = $this->get(route('urls.show', ['url' => $url->id]));
-        self::assertEquals(200, $response->getStatusCode());
+        static::assertNotNull($url);
+        $urlId = $url->id;
+
+        $response = $this->get(route('urls.show', ['url' => $urlId]));
+        $response->assertOk();
     }
 }
