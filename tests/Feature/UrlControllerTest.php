@@ -33,11 +33,20 @@ class UrlControllerTest extends AbstractFeatureTestCase
     {
         $url = DB::table('urls')->where(['name' => "http://example.com"])->first();
 
-        Http::fake(fn() => Http::response('Fake body', 200));
+        $filePath = __DIR__ . '/../fixtures/fake.html';
+        self::assertFileExists($filePath);
+        Http::fake(fn() => Http::response(file_get_contents($filePath), 200));
+
         $response = $this->post(route('urls.check', ['url' => $url->id]));
         $response->assertSessionHasNoErrors();
 
-        $result = ['url_id' => $url->id, 'status_code' => 200];
+        $result = [
+            'url_id'      => $url->id,
+            'status_code' => 200,
+            'h1'          => 'First h1',
+            'keywords'    => 'meta keywords content',
+            'description' => 'meta description content'
+        ];
         $this->assertDatabaseHas('url_checks', $result);
     }
 

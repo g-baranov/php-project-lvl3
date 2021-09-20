@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use DiDom\Document;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
@@ -109,9 +110,18 @@ class UrlController extends Controller
 
         try {
             $response = Http::get($url->name);
+
+            $page = new Document($response->body());
+            $h1 = optional($page->first('h1'))->text();
+            $keywords = optional($page->first('meta[name=keywords]'))->getAttribute('content', null);
+            $description = optional($page->first('meta[name=description]'))->getAttribute('content', null);
+
             DB::table('url_checks')->insert([
                  'url_id' => $url->id,
                  'status_code' => $response->status(),
+                 'h1' => $h1,
+                 'keywords' => $keywords,
+                 'description' => $description,
                  'created_at' => Carbon::now(),
                  'updated_at' => Carbon::now()
             ]);
