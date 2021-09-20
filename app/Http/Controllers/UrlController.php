@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +17,18 @@ class UrlController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return View
      */
     public function index(): View
     {
         $urls = DB::table('urls')->paginate(50);
-        return view('url.index', ['urls' => $urls]);
+        $lastUrlChecks = DB::table('url_checks')
+            ->distinct('url_id', 'id')
+            ->get()
+            ->keyBy('url_id')
+        ; //prevent n+1
+
+        return view('url.index', ['urls' => $urls, 'lastUrlChecks' => $lastUrlChecks]);
     }
 
     /**
@@ -45,7 +53,6 @@ class UrlController extends Controller
         $urlParts = parse_url($urlRaw);
         $host = mb_strtolower("{$urlParts['scheme']}://{$urlParts['host']}");
 
-
         $url = DB::table('urls')->where('name', $host)->first();
 
         if ($url) {
@@ -67,11 +74,43 @@ class UrlController extends Controller
      * Display the specified resource.
      *
      * @param int $id
-     * @return View
+     * @return Application|Factory|View|Response
      */
-    public function show(int $id): View
+    public function show(int $id)
     {
         $url = DB::table('urls')->where('id', $id)->first();
-        return view('url.show', ['url' => $url]);
+        if (!$url) {
+            flash("Url id#{$id} was not found")->error();
+            return Redirect::route('main')->withInput();
+        }
+
+        $urlChecks = DB::table('url_checks')
+            ->where('url_id', $url->id)
+            ->orderByDesc('id')
+            ->paginate(50);
+        return view('url.show', ['url' => $url, 'urlChecks' => $urlChecks]);
+    }
+
+
+    /**
+     * @param int $id
+     * @return Response
+     */
+    public function check(int $id): Response
+    {
+        $url = DB::table('urls')->find($id);
+
+        if (!$url) {
+            flash("Url id#{$id} was not found")->error();
+            return Redirect::route('main')->withInput();
+        }
+        DB::table('url_checks')->insert( [
+            'url_id' => $url->id,
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now()
+        ]);
+
+        flash("Created successfully")->success();
+        return Redirect::route('urls.show', ['url' => $url->id])->withInput();
     }
 }

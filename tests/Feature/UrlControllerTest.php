@@ -28,6 +28,16 @@ class UrlControllerTest extends AbstractFeatureTestCase
         $this->assertDatabaseHas('urls', $result);
     }
 
+    public function testCheck(): void
+    {
+        $url = DB::table('urls')->where(['name' => "http://example.com"])->first();
+        $response = $this->post(route('urls.check', ['url' => $url->id]));
+        $response->assertSessionHasNoErrors();
+
+        $result = ['url_id' => $url->id];
+        $this->assertDatabaseHas('url_checks', $result);
+    }
+
     public function testShow(): void
     {
         $url = DB::table('urls')->where(['name' => "http://example.com"])->first();

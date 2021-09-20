@@ -14,11 +14,12 @@
                         <th>Код ответа</th>
                     </tr>
                     @foreach ($urls as $url)
+                        @php($lastUrlCheck = $lastUrlChecks[$url->id] ?? null)
                         <tr>
                             <td>{{ $url->id }}</td>
                             <td><a href="{{ route('urls.show', ['url' => $url->id]) }}">{{ $url->name }}</a></td>
-                            <td></td>
-                            <td></td>
+                            <td>{{ $lastUrlCheck->created_at ?? '' }}</td>
+                            <td>{{ $lastUrlCheck->status_code ?? '' }}</td>
                         </tr>
                     @endforeach
                     </tbody>

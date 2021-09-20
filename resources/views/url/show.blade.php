@@ -26,7 +26,7 @@
                 </table>
             </div>
             <h2 class="mt-5 mb-3">Проверки</h2>
-            <form method="post" action="#">
+            <form method="post" action="{{ route('urls.check', ['url' => $url->id]) }}">
                 {{ @csrf_field() }}
                 <input type="submit" class="btn btn-primary" value="Запустить проверку">
             </form>
@@ -39,16 +39,17 @@
                     <th>description</th>
                     <th>Дата создания</th>
                 </tr>
-                <tr>
-                    <td>TODO 755</td>
-                    <td>200</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>2021-09-17 06:30:07</td>
-                </tr>
-
-
+                @foreach ($urlChecks as $urlCheck)
+                    <tr>
+                        <td>{{ $urlCheck->id }}</td>
+                        <td>{{ $urlCheck->status_code }}</td>
+                        <td>{{ $urlCheck->h1 }}</td>
+                        <td>{{ $urlCheck->keywords }}</td>
+                        <td>{{ $urlCheck->description }}</td>
+                        <td>{{ $urlCheck->created_at }}</td>
+                    </tr>
+                @endforeach
+                {{ $urlChecks->links() }}
                 </tbody>
             </table>
         </div>

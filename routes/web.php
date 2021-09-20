@@ -17,3 +17,4 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'main')->name('main');
 
 Route::resource('urls', UrlController::class);
+Route::post('/urls/{url}/checks', [UrlController::class, 'check'])->name('urls.check');
