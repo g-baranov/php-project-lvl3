@@ -6,11 +6,14 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Client\HttpClientException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class UrlController extends Controller
 {
@@ -99,16 +102,24 @@ class UrlController extends Controller
     public function check(int $id): Response
     {
         $url = DB::table('urls')->find($id);
-
         if (!$url) {
             flash("Url id#{$id} was not found")->error();
             return Redirect::route('main')->withInput();
         }
-        DB::table('url_checks')->insert( [
-            'url_id' => $url->id,
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now()
-        ]);
+
+        try {
+            $response = Http::get($url->name);
+            DB::table('url_checks')->insert([
+                 'url_id' => $url->id,
+                 'status_code' => $response->status(),
+                 'created_at' => Carbon::now(),
+                 'updated_at' => Carbon::now()
+            ]);
+        } catch (HttpClientException $exception) {
+            flash($exception->getMessage())->error();
+        } catch (Throwable $throwable) {
+            flash('Something went wrong')->error();
+        }
 
         flash("Created successfully")->success();
         return Redirect::route('urls.show', ['url' => $url->id])->withInput();

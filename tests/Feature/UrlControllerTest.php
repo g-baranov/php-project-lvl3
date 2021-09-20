@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class UrlControllerTest extends AbstractFeatureTestCase
 {
@@ -31,10 +32,12 @@ class UrlControllerTest extends AbstractFeatureTestCase
     public function testCheck(): void
     {
         $url = DB::table('urls')->where(['name' => "http://example.com"])->first();
+
+        Http::fake(fn() => Http::response('Fake body', 200));
         $response = $this->post(route('urls.check', ['url' => $url->id]));
         $response->assertSessionHasNoErrors();
 
-        $result = ['url_id' => $url->id];
+        $result = ['url_id' => $url->id, 'status_code' => 200];
         $this->assertDatabaseHas('url_checks', $result);
     }
 
