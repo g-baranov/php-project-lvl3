@@ -61,8 +61,8 @@ class UrlController extends Controller
         $url = DB::table('urls')->where('name', $host)->first();
 
         if (!is_null($url)) {
-            flash("The url already exists id#{$url->id}")->error();
-            return Redirect::route('main')->withInput();
+            flash("The url already exists id#{$url->id}")->info();
+            return Redirect::route('urls.show', ['url' => $url->id])->withInput();
         }
 
         $createdId = DB::table('urls')->insertGetId([
@@ -95,45 +95,5 @@ class UrlController extends Controller
             ->paginate(50);
 
         return response()->view('url.show', ['url' => $url, 'urlChecks' => $urlChecks]);
-    }
-
-
-    /**
-     * @param int $id
-     * @return Response
-     */
-    public function check(int $id): Response
-    {
-        $url = DB::table('urls')->find($id);
-        if (is_null($url)) {
-            flash("Url id#{$id} was not found")->error();
-            return Redirect::route('main')->withInput();
-        }
-
-        try {
-            $response = Http::get($url->name);
-
-            $page = new Document($response->body());
-            $h1 = optional($page->first('h1'))->text();
-            $keywords = optional($page->first('meta[name=keywords]'))->getAttribute('content', null);
-            $description = optional($page->first('meta[name=description]'))->getAttribute('content', null);
-
-            DB::table('url_checks')->insert([
-                 'url_id' => $url->id,
-                 'status_code' => $response->status(),
-                 'h1' => $h1,
-                 'keywords' => $keywords,
-                 'description' => $description,
-                 'created_at' => Carbon::now(),
-                 'updated_at' => Carbon::now()
-            ]);
-        } catch (HttpClientException $exception) {
-            flash($exception->getMessage())->error();
-        } catch (Throwable $throwable) {
-            flash('Something went wrong')->error();
-        }
-
-        flash("Created successfully")->success();
-        return Redirect::route('urls.show', ['url' => $url->id])->withInput();
     }
 }

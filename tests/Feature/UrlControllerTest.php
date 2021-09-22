@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use Exception;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 class UrlControllerTest extends AbstractFeatureTestCase
 {
@@ -23,39 +22,15 @@ class UrlControllerTest extends AbstractFeatureTestCase
 
     public function testStore(): void
     {
-        $result = ['name' => 'http://needtostore.com'];
-        $response = $this->post(route('urls.store'), ['url' => $result]);
+        $urlData = ['name' => 'http://needtostore.com'];
+        $response = $this->post(route('urls.store'), ['url' => $urlData]);
         $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
 
-        $this->assertDatabaseHas('urls', $result);
-    }
+        /** @var Response $response - linter fix */
+        $this->followRedirects($response)->assertSeeText($urlData['name']);
 
-    public function testCheck(): void
-    {
-        /** @var object|null $url */
-        $url = DB::table('urls')->where(['name' => "http://example.com"])->first();
-        static::assertNotNull($url);
-        $urlId = $url->id;
-
-        $filePath = __DIR__ . '/../fixtures/fake.html';
-        $fileContent = file_get_contents($filePath);
-        if ($fileContent === false) {
-            throw new Exception('File not found');
-        }
-
-        Http::fake(fn() => Http::response($fileContent, 200));
-
-        $response = $this->post(route('urls.check', ['url' => $urlId]));
-        $response->assertSessionHasNoErrors();
-
-        $result = [
-            'url_id'      => $urlId,
-            'status_code' => 200,
-            'h1'          => 'First h1',
-            'keywords'    => 'meta keywords content',
-            'description' => 'meta description content'
-        ];
-        $this->assertDatabaseHas('url_checks', $result);
+        $this->assertDatabaseHas('urls', $urlData);
     }
 
     public function testShow(): void
@@ -63,9 +38,9 @@ class UrlControllerTest extends AbstractFeatureTestCase
         /** @var object|null $url */
         $url = DB::table('urls')->where(['name' => "http://example.com"])->first();
         static::assertNotNull($url);
-        $urlId = $url->id;
 
-        $response = $this->get(route('urls.show', ['url' => $urlId]));
+        $response = $this->get(route('urls.show', ['url' => $url->id]));
         $response->assertOk();
+        $response->assertSeeText($url->name);
     }
 }
