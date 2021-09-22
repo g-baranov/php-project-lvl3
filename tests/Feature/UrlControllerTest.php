@@ -23,12 +23,10 @@ class UrlControllerTest extends AbstractFeatureTestCase
     public function testStore(): void
     {
         $urlData = ['name' => 'http://needtostore.com'];
-        $response = $this->post(route('urls.store'), ['url' => $urlData]);
+        $response = $this->followingRedirects()->post(route('urls.store'), ['url' => $urlData]);
         $response->assertSessionHasNoErrors();
-        $response->assertRedirect();
-
-        /** @var Response $response - linter fix */
-        $this->followRedirects($response)->assertSeeText($urlData['name']);
+        $response->assertOk();
+        $response->assertSeeText($urlData['name']);
 
         $this->assertDatabaseHas('urls', $urlData);
     }
