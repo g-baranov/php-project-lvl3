@@ -85,7 +85,7 @@ class UrlController extends Controller
      */
     public function show(int $id): Response
     {
-        $url = DB::table('urls')->where('id', $id)->first();
+        $url = DB::table('urls')->find($id);
         abort_unless($url, 404);
 
         $urlChecks = DB::table('url_checks')
