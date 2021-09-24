@@ -22,10 +22,7 @@ class UrlCheckController extends Controller
     public function store(int $id): Response
     {
         $url = DB::table('urls')->find($id);
-        if (is_null($url)) {
-            flash("Url id#{$id} was not found")->error();
-            return Redirect::route('main')->withInput();
-        }
+        abort_unless($url, 404);
 
         try {
             $response = Http::get($url->name);
@@ -46,13 +43,10 @@ class UrlCheckController extends Controller
             ]);
         } catch (HttpClientException $exception) {
             flash($exception->getMessage())->error();
-            return Redirect::route('urls.show', ['url' => $url->id])->withInput();
-        } catch (Throwable $throwable) {
-            flash('Something went wrong')->error();
-            return Redirect::route('urls.show', ['url' => $url->id])->withInput();
+            return Redirect::route('urls.show', ['url' => $url->id]);
         }
 
         flash("Created successfully")->success();
-        return Redirect::route('urls.show', ['url' => $url->id])->withInput();
+        return Redirect::route('urls.show', ['url' => $url->id]);
     }
 }

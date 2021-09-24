@@ -27,7 +27,9 @@ class UrlController extends Controller
     {
         $urls = DB::table('urls')->paginate(50);
         $lastUrlChecks = DB::table('url_checks')
-            ->distinct('url_id', 'id')
+            ->distinct('url_id')
+            ->orderBy('url_id')
+            ->latest()
             ->get()
             ->keyBy('url_id')
         ; //prevent n+1
@@ -56,23 +58,23 @@ class UrlController extends Controller
 
         $urlRaw = $urlData['name'];
         $urlParts = parse_url($urlRaw);
-        $host = mb_strtolower("{$urlParts['scheme']}://{$urlParts['host']}");
+        $normalizedUrl = mb_strtolower("{$urlParts['scheme']}://{$urlParts['host']}");
 
-        $url = DB::table('urls')->where('name', $host)->first();
+        $url = DB::table('urls')->where('name', $normalizedUrl)->first();
 
         if (!is_null($url)) {
             flash("The url already exists id#{$url->id}")->info();
-            return Redirect::route('urls.show', ['url' => $url->id])->withInput();
+            return Redirect::route('urls.show', ['url' => $url->id]);
         }
 
         $createdId = DB::table('urls')->insertGetId([
-            'name' => $host,
+            'name' => $normalizedUrl,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
 
         flash("Created successfully")->success();
-        return Redirect::route('urls.show', ['url' => $createdId])->withInput();
+        return Redirect::route('urls.show', ['url' => $createdId]);
     }
 
     /**
@@ -84,10 +86,7 @@ class UrlController extends Controller
     public function show(int $id): Response
     {
         $url = DB::table('urls')->where('id', $id)->first();
-        if (is_null($url)) {
-            flash("Url id#{$id} was not found")->error();
-            return Redirect::route('main')->withInput();
-        }
+        abort_unless($url, 404);
 
         $urlChecks = DB::table('url_checks')
             ->where('url_id', $url->id)
